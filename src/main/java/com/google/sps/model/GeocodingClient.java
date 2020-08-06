@@ -16,6 +16,7 @@ package com.google.sps.model;
 
 import com.google.maps.model.GeocodingResult;
 import com.google.sps.exceptions.GeocodingException;
+import java.util.List;
 
 /**
  * Contract for sending GET requests to the Google Geocoding API. Implement getGeocodingResult to
@@ -29,9 +30,9 @@ public interface GeocodingClient {
    * GeocodingException to be thrown.
    *
    * @param address A String representing the address to geocode.
-   * @return A GeocodingResult returned from the Geocoding API.
+   * @return A List of GeocodingResult returned from the Geocoding API.
    * @throws GeocodingException A custom exception is thrown to signal an error pertaining to the
    *     Geocoding API.
    */
-  GeocodingResult getGeocodingResult(String address) throws GeocodingException;
+  List<GeocodingResult> getGeocodingResult(String address) throws GeocodingException;
 }
