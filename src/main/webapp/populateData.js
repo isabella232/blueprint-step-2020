@@ -17,12 +17,6 @@
 /* eslint-disable no-unused-vars */
 /* global signOut, AuthenticationError, Task, getDateInLocalTimeZone,
  encodeListForUrl */
-// TODO: Refactor so populate functions are done in parallel (Issue #26)
-
-// Stores the last retrieved copy of the user's taskLists and tasks
-// (mapped by taskListId)
-let taskLists = [];
-let tasks = {};
 
 /**
  * Populate Gmail container with user information
@@ -166,6 +160,15 @@ function populateTasks() {
 }
 
 /**
+ * Will reset the tasklists selector and populate the panel again,
+ * giving the system the chance to add new tasklists to the tasklists options.
+ */
+function resetTasks() {
+  document.querySelector('#tasks-select').options.length = 0;
+  populateTasks();
+}
+
+/**
  * Populate Calendar container with user's events
  */
 function populateCalendar() {
@@ -221,43 +224,6 @@ function populateCalendar() {
 }
 
 /**
- * Function to test getting taskLists and adding a new taskList.
- * Will 1) request a new taskList be made with a default name (the current time)
- * and 2) get the new list of taskLists and log them in the console.
-
- * Function to test getting taskLists, adding a new taskList, and then getting
- * a new task.
- *
- * Will 1) request a new taskList be made with a default name (current time)
- * then, 2) add a task to the new taskList and
- * 3) get the new list of taskLists and log them in the console.
- */
-function postAndGetTaskList() {
-  const sampleTitle =
-      getDateInLocalTimeZone().getTime().toString();
-
-  postNewTaskList(sampleTitle)
-      .then((taskList) => {
-        const sampleTask =
-                  new Task(
-                      'test',
-                      'This is a test',
-                      getDateInLocalTimeZone()
-                  );
-        const taskListId = taskList.id;
-
-        postNewTask(taskListId, sampleTask)
-            .then(() => {
-              getTaskListsAndTasks()
-                  .then(() => {
-                    console.log(tasks);
-                    console.log(taskLists);
-                  });
-            });
-      });
-}
-
-/**
  * Post a new task to a given taskList
  *
  * @param {string} taskListId the id of the taskList that the new task should
@@ -279,6 +245,7 @@ function postNewTask(taskListId, taskObject) {
       .then((response) => {
         switch (response.status) {
           case 200:
+            resetTasks();
             return response.json();
           case 403:
             throw new AuthenticationError();
@@ -307,8 +274,7 @@ function getTaskListsAndTasks() {
         }
       })
       .then((response) => {
-        tasks = response.tasks;
-        taskLists = response.taskLists;
+        return response;
       });
 }
 
@@ -330,6 +296,7 @@ function postNewTaskList(title) {
       .then((response) => {
         switch (response.status) {
           case 200:
+            resetTasks();
             return response.json();
           case 403:
             throw new AuthenticationError();
@@ -370,66 +337,6 @@ function populateGo() {
         console.log(e);
         if (e instanceof AuthenticationError) {
           signOut();
-        }
-      });
-}
-
-/**
- * Set up the assign panel. For now, this just prints the response
- * from the server for /gmail-actionable-emails
- */
-function setUpAssign() {
-  const assignContent = document.querySelector('#assign');
-
-  const subjectLinePhrases = ['Action Required', 'Action Requested'];
-  const unreadOnly = true;
-  const nDays = 7;
-  fetchActionableEmails(subjectLinePhrases, unreadOnly, nDays)
-      .then((response) => {
-        assignContent.innerText = response
-            .map((obj) => obj.subject)
-            .join('\n');
-      })
-      .catch((e) => {
-        console.log(e);
-        if (e instanceof AuthenticationError) {
-          signOut();
-        }
-      });
-}
-
-/**
- * Get actionable emails from server. Used for assign panel
- *
- * @param {string[]} listOfPhrases list of words/phrases that the subject line
- *     of user's emails should be queried for
- * @param {boolean} unreadOnly true if only unread emails should be returned,
- *     false otherwise
- * @param {number} nDays number of days to check unread emails for.
- *     Should be an integer > 0
- * @return {Promise<Object>} returns promise that returns the JSON response
- *     from client. Should be list of Gmail Message Objects. Will throw
- *     AuthenticationError in the case of a 403, or generic Error in
- *     case of other error code
- */
-function fetchActionableEmails(listOfPhrases, unreadOnly, nDays) {
-  const listOfPhrasesString = encodeListForUrl(listOfPhrases);
-  const unreadOnlyString = unreadOnly.toString();
-  const nDaysString = nDays.toString();
-
-  const queryString =
-      `/gmail-actionable-emails?subjectLinePhrases=${listOfPhrasesString}` +
-      `&unreadOnly=${unreadOnlyString}&nDays=${nDaysString}`;
-
-  return fetch(queryString)
-      .then((response) => {
-        switch (response.status) {
-          case 200:
-            return response.json();
-          case 403:
-            throw new AuthenticationError();
-          default:
-            throw new Error(response.status + ' ' + response.statusText);
         }
       });
 }
