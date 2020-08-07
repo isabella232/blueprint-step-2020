@@ -57,6 +57,7 @@ import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
 
 /** Serves key information from optimizing between addresses. */
 @WebServlet("/go")
@@ -150,7 +151,7 @@ public class GoServlet extends AuthenticatedHttpServlet {
     List<Task> tasks;
 
     String taskLists = request.getParameter("taskLists");
-    if (taskLists == null) {
+    if (StringUtils.isEmpty(taskLists)) {
       tasks = TasksUtility.getAllTasksFromAllTaskLists(tasksClient);
     } else {
       Set<String> selectedTaskListIds = new HashSet<>(Arrays.asList(taskLists.split(",")));
